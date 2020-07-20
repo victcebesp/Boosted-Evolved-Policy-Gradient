@@ -138,9 +138,9 @@ class GenericAgent(object):
         obs_pad = np.zeros((self._buffer_size - obs.shape[0], obs.shape[1]), dtype=np.float32)
         act_pad = np.zeros((self._buffer_size - acts.shape[0], acts.shape[1]), dtype=np.float32)
         pad = np.hstack([obs_pad, act_pad, rew_pad[:, None], auxs_pad[:, None], done_pad[:, None]])
-        traj = np.vstack([pad, traj])
-        traj[:, obs.shape[1] + acts.shape[1]] = epg_rews
+        traj[:, obs.shape[1] + acts.shape[1]] = epg_rews # ERROR HERE
         traj[:, -1] = dones
+        traj = np.vstack([pad, traj])
 
         # Since the buffer length can be larger than the set of new samples, we truncate the
         # trajectories here for PPO.
