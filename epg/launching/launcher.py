@@ -77,6 +77,7 @@ def make_command(thunk, logdir, mpi_num_procs, mpi_hosts_path):
             mpicmd.extend(['-f', mpi_hosts_path])
         mpicmd.extend(cmd)
         cmd = mpicmd
+    print(' '.join(cmd))
     return cmd
 
 
@@ -118,10 +119,11 @@ def call(fn, *, log_relpath, args=None, kwargs=None, mpi_proc_per_machine=1, mpi
 
     write_metadata(local_eval_dir, args=args, kwargs=kwargs)
 
-    def thunk():
-        return fn(*args, **kwargs)
-
     mpi_procs = mpi_proc_per_machine * mpi_machines
+
+    def thunk():
+        return fn(sequential=True if mpi_procs == 1 else False, *args, **kwargs)
+
     if mpi_procs > 1:
         cmd = make_command(thunk, local_eval_dir, mpi_procs, mpi_hosts_path=None)
         return os.execvp(cmd[0], cmd)

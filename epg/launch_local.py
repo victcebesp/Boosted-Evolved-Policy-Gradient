@@ -1,13 +1,17 @@
 import datetime
 import os
+import random
 
 import click
+import gym
 import numpy as np
 from mpi4py import MPI
 
+from epg.envs.CartPole import CartPole
 from epg.launching import launcher, logger
 from epg.envs.random_robots import RandomHopper, DirHopper, NormalHopper
 from epg.evolution import ES
+from epg.sequentialEvolution import SequentialES
 
 """
 Evolved Policy Gradients (EPG)
@@ -29,29 +33,35 @@ def env_selector(env_id, seed=0):
         env = DirHopper(seed=seed)
     elif 'NormalHopper' == env_id:
         env = NormalHopper(seed=seed)
+    elif 'CartPole-v0' == env_id:
+        env = CartPole(seed=seed)
     else:
         raise Exception('Unknown environment.')
     return env
 
 
-def setup_es(seed=0, env_id='DirHopper', log_path='/tmp/out', n_cpu=1, **agent_args):
-    seed = MPI.COMM_WORLD.Get_rank() * 1000
+def setup_es(seed=0, env_id='DirHopper', log_path='/tmp/out', n_cpu=1, sequential=False, **agent_args):
+
+    seed = random.randint(1, 5) * 1000
     assert agent_args is not None
     np.random.seed(seed)
     env = env_selector(env_id, seed)
     env.seed(seed)
-    es = ES(env, env_id, **agent_args)
+    if sequential:
+        es = SequentialES(env, env_id, **agent_args)
+    else:
+        es = ES(env, env_id, **agent_args)
     logger.log('Experiment configuration: {}'.format(str(locals())))
     return es
 
 
-def test_run(seed=0, env_id='DirHopper', log_path='/tmp/out', n_cpu=1, **agent_args):
+def test_run(seed=0, env_id='DirHopper', log_path='/tmp/out', n_cpu=1, sequential=False, **agent_args):
     es = setup_es(seed, env_id, log_path, n_cpu, **agent_args)
     es.test(**agent_args, n_cpu=n_cpu)
 
 
-def run(seed=0, env_id='DirHopper', log_path='/tmp/out', n_cpu=1, **agent_args):
-    es = setup_es(seed, env_id, log_path, n_cpu, **agent_args)
+def run(seed=0, env_id='DirHopper', log_path='/tmp/out', n_cpu=1, sequential=False, **agent_args):
+    es = setup_es(seed, env_id, log_path, n_cpu, sequential, **agent_args)
     es.train(**agent_args, n_cpu=n_cpu)
 
 
@@ -64,14 +74,15 @@ def main(test):
 
     # Experiment params
     # -----------------
-    env_id = 'DirHopper'
+    #env_id = 'DirHopper'
+    env_id = 'CartPole-v0'
     # Number of noise vector seeds for ES
-    outer_n_samples_per_ep = 8
+    outer_n_samples_per_ep = 4
     # Perform policy SGD updates every `inner_opt_freq` steps
-    inner_opt_freq = 64
+    inner_opt_freq = 32
     # Perform `inner_max_n_epoch` total SGD policy updates,
     # so in total `inner_steps` = `inner_opt_freq` * `inner_max_n_epoch`
-    inner_max_n_epoch = 128
+    inner_max_n_epoch = 300
     # Temporal convolutions slide over buffer of length `inner_buffer_size`
     inner_buffer_size = inner_opt_freq * 8
     # Use PPO bootstrapping?
@@ -99,7 +110,7 @@ def main(test):
     # Plotting frequency in number of outer loop epochs
     plot_freq = 50
     # Maximum number of cpus used per MPI process
-    max_cpu = 2
+    max_cpu = 4
     # Local experiment log path
     launcher.LOCAL_LOG_PATH = os.path.expanduser("~/EPG_experiments")
     # Where to load theta from for `--test true` purposes

@@ -31,7 +31,7 @@ def get_dims(env):
         elif isinstance(env.observation_space, gym.spaces.MultiDiscrete):
             env_dim = env.observation_space.shape[0] * 3
         else:
-            env_dim = env.observation_space.shape * 3
+            env_dim = env.observation_space.shape[0]
         act_dim = env.action_space.n
         n_output_params = 1
     else:
@@ -117,12 +117,12 @@ def categorical_kl(params0, params1):
     params0 = params0[0]
     params1 = params1[0]
     assert params0.shape == params1.shape
-    a0 = params0 - F.tile(F.max(params0, axis=1, keepdims=True), (1, 4))
-    a1 = params1 - F.tile(F.max(params1, axis=1, keepdims=True), (1, 4))
+    a0 = params0 - F.tile(F.max(params0, axis=1, keepdims=True), (1, params0.shape[1]))
+    a1 = params1 - F.tile(F.max(params1, axis=1, keepdims=True), (1, params1.shape[1]))
     ea0 = F.exp(a0)
     ea1 = F.exp(a1)
-    z0 = F.tile(F.sum(ea0, axis=1, keepdims=True), (1, 4))
-    z1 = F.tile(F.sum(ea1, axis=1, keepdims=True), (1, 4))
+    z0 = F.tile(F.sum(ea0, axis=1, keepdims=True), (1, ea0.shape[1]))
+    z1 = F.tile(F.sum(ea1, axis=1, keepdims=True), (1, ea1.shape[1]))
     p0 = ea0 / z0
     return F.sum(p0 * (a0 - F.log(z0) - a1 + F.log(z1)), axis=1)
 
