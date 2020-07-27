@@ -1,19 +1,18 @@
 import gym
 import numpy as np
 from gym import Env, utils
-from gym.utils import EzPickle
 
 
-class CartPole(Env, EzPickle):
+class CartPole(Env):
 
     def __init__(self, seed=None, **_):
-        utils.EzPickle.__init__(self)
         env = gym.make('CartPole-v0')
         self.env = RandomCartPole()
         self.observation_space = env.observation_space
         self.action_space = env.action_space
         self.reset_model = self.meta_reset
         self.step = env.step
+        self.reset = env.reset
 
     def meta_reset(self, seed):
         np.random.seed(seed)
@@ -30,11 +29,11 @@ class CartPole(Env, EzPickle):
         self.reset = env.reset
 
 
-class RandomCartPole(Env, EzPickle):
+class RandomCartPole(Env):
 
     def __init__(self):
-        utils.EzPickle.__init__(self)
         self._env = gym.make('CartPole-v0')
+        self._env._max_episode_steps = 500
 
     def step(self, action):
         return self._env.step(action)
