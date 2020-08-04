@@ -8,6 +8,7 @@ import numpy as np
 from mpi4py import MPI
 
 from epg.envs.CartPole import CartPole
+from epg.envs.MiniGrid import MiniGrid
 from epg.launching import launcher, logger
 from epg.envs.random_robots import RandomHopper, DirHopper, NormalHopper
 from epg.evolution import ES
@@ -33,8 +34,10 @@ def env_selector(env_id, seed=0):
         env = DirHopper(seed=seed)
     elif 'NormalHopper' == env_id:
         env = NormalHopper(seed=seed)
-    elif 'CartPole-v0' == env_id:
+    elif 'CartPole' == env_id:
         env = CartPole(seed=seed)
+    elif 'MiniGrid' == env_id:
+        env = MiniGrid(seed=seed)
     else:
         raise Exception('Unknown environment.')
     return env
@@ -56,7 +59,7 @@ def setup_es(seed=0, env_id='DirHopper', log_path='/tmp/out', n_cpu=1, sequentia
 
 
 def test_run(seed=0, env_id='DirHopper', log_path='/tmp/out', n_cpu=1, sequential=False, **agent_args):
-    es = setup_es(seed, env_id, log_path, n_cpu, **agent_args)
+    es = setup_es(seed, env_id, log_path, n_cpu, sequential, **agent_args)
     es.test(**agent_args, n_cpu=n_cpu)
 
 
@@ -75,14 +78,15 @@ def main(test):
     # Experiment params
     # -----------------
     #env_id = 'DirHopper'
-    env_id = 'CartPole-v0'
+    #env_id = 'CartPole'
+    env_id = 'MiniGrid'
     # Number of noise vector seeds for ES
-    outer_n_samples_per_ep = 4
+    outer_n_samples_per_ep = 8
     # Perform policy SGD updates every `inner_opt_freq` steps
-    inner_opt_freq = 32
+    inner_opt_freq = 64
     # Perform `inner_max_n_epoch` total SGD policy updates,
     # so in total `inner_steps` = `inner_opt_freq` * `inner_max_n_epoch`
-    inner_max_n_epoch = 300
+    inner_max_n_epoch = 128
     # Temporal convolutions slide over buffer of length `inner_buffer_size`
     inner_buffer_size = inner_opt_freq * 8
     # Use PPO bootstrapping?
@@ -110,11 +114,13 @@ def main(test):
     # Plotting frequency in number of outer loop epochs
     plot_freq = 50
     # Maximum number of cpus used per MPI process
-    max_cpu = 4
+    max_cpu = 8
     # Local experiment log path
     launcher.LOCAL_LOG_PATH = os.path.expanduser("~/EPG_experiments")
     # Where to load theta from for `--test true` purposes
     theta_load_path = '~/EPG_experiments/<path_to_theta.npy>/theta.npy'
+    # Whether to render or not the environment
+    render = False
     # -----------------
 
     exp_tag = '{}-{}-{}{}{}{}'.format(
@@ -127,6 +133,14 @@ def main(test):
     ).replace('.', '')
     exp_name = '{}-{}-{}'.format(time, env_id.lower(), exp_tag)
     job_name = 'epg-{}--{}'.format(date, exp_name)
+
+
+    mpi_machines = 1
+    mpi_proc_per_machine = int(np.ceil(outer_n_samples_per_ep / mpi_machines / float(max_cpu)))
+    logger.log(
+        'Running experiment {}/{} with {} noise vectors on {} machines with {}'
+        ' MPI processes per machine, each using {} pool processes.'.format(
+            date, exp_name, outer_n_samples_per_ep, mpi_machines, mpi_proc_per_machine, max_cpu))
 
     epg_args = dict(
         env_id=env_id,
@@ -149,14 +163,9 @@ def main(test):
         inner_use_ppo=ppo,
         fix_ppo=fix_ppo,
         gpi=gpi,
+        render=render,
+        sequential=True if mpi_proc_per_machine * mpi_machines == 1 else False
     )
-
-    mpi_machines = 1
-    mpi_proc_per_machine = int(np.ceil(outer_n_samples_per_ep / mpi_machines / float(max_cpu)))
-    logger.log(
-        'Running experiment {}/{} with {} noise vectors on {} machines with {}'
-        ' MPI processes per machine, each using {} pool processes.'.format(
-            date, exp_name, outer_n_samples_per_ep, mpi_machines, mpi_proc_per_machine, max_cpu))
 
     # Experiment launcher
     launcher.call(job_name=job_name,

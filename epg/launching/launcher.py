@@ -122,7 +122,7 @@ def call(fn, *, log_relpath, args=None, kwargs=None, mpi_proc_per_machine=1, mpi
     mpi_procs = mpi_proc_per_machine * mpi_machines
 
     def thunk():
-        return fn(sequential=True if mpi_procs == 1 else False, *args, **kwargs)
+        return fn(*args, **kwargs)
 
     if mpi_procs > 1:
         cmd = make_command(thunk, local_eval_dir, mpi_procs, mpi_hosts_path=None)
