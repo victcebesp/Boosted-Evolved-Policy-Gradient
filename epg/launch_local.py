@@ -121,6 +121,8 @@ def main(test):
     theta_load_path = '~/EPG_experiments/<path_to_theta.npy>/theta.npy'
     # Whether to render or not the environment
     render = False
+    # Signal combinator to create the loss used to evolve
+    signal_combinator_id = 'Default'
     # -----------------
 
     exp_tag = '{}-{}-{}{}{}{}'.format(
@@ -164,7 +166,8 @@ def main(test):
         fix_ppo=fix_ppo,
         gpi=gpi,
         render=render,
-        sequential=True if mpi_proc_per_machine * mpi_machines == 1 else False
+        sequential=True if mpi_proc_per_machine * mpi_machines == 1 else False,
+        signal_combinator_id=signal_combinator_id
     )
 
     # Experiment launcher

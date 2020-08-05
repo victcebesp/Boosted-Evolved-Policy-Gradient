@@ -138,7 +138,7 @@ class GenericAgent(object):
         obs_pad = np.zeros((self._buffer_size - obs.shape[0], obs.shape[1]), dtype=np.float32)
         act_pad = np.zeros((self._buffer_size - acts.shape[0], acts.shape[1]), dtype=np.float32)
         pad = np.hstack([obs_pad, act_pad, rew_pad[:, None], auxs_pad[:, None], done_pad[:, None]])
-        traj[:, obs.shape[1] + acts.shape[1]] = epg_rews # ERROR HERE
+        traj[:, obs.shape[1] + acts.shape[1]] = epg_rews
         traj[:, -1] = dones
         traj = np.vstack([pad, traj])
 
