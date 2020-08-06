@@ -18,8 +18,8 @@ class RelativeTimeCombinator(EvolutionSignalsCombinator):
 
         noise = noise[::NUM_EQUAL_NOISE_VECTORS]
         returns = np.mean(returns.reshape(-1, NUM_EQUAL_NOISE_VECTORS), axis=1)
-        relative_ranks_absolute_time = relative_ranks(returns) / relative_ep_length
-        theta_grad = relative_ranks_absolute_time.dot(noise) / outer_n_samples_per_ep \
+        relative_ranks_absolute_time = relative_ranks(returns)
+        theta_grad = relative_ranks_absolute_time.dot(noise) / outer_n_samples_per_ep / relative_ep_length \
                      - outer_l2 * theta
 
         return theta_grad
