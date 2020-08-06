@@ -1,6 +1,9 @@
 import matplotlib
 
 from epg.evolution import ES
+from epg.evolutionSignalsCombinator.AbsoluteTimeCombinator import AbsoluteTimeCombinator
+from epg.evolutionSignalsCombinator.DefaultCombinator import DefaultCombinator
+from epg.evolutionSignalsCombinator.RelativeTimeCombinator import RelativeTimeCombinator
 
 matplotlib.use('Agg')
 import gym
@@ -22,10 +25,24 @@ NUM_EQUAL_NOISE_VECTORS = 1
 NUM_TEST_SAMPLES = 7
 
 
+def signal_combinator_selector(signal_cobmbinator_id):
+
+    if 'Default' == signal_cobmbinator_id:
+        signal_combinator = DefaultCombinator()
+    elif 'AbsoluteTime' == signal_cobmbinator_id:
+        signal_combinator = AbsoluteTimeCombinator()
+    elif 'RelativeTimeCombinator' == signal_cobmbinator_id:
+        signal_combinator = RelativeTimeCombinator()
+    else:
+        raise Exception('Unknown signal combinator')
+
+    return signal_combinator
+
+
 class SequentialES(ES):
 
     def train(self, outer_n_epoch, outer_l2, outer_std, outer_learning_rate, outer_n_samples_per_ep,
-              n_cpu=None, fix_ppo=None, **_):
+              n_cpu=None, fix_ppo=None, render=False, signal_combinator_id='Default', **_):
 
         if fix_ppo:
             ppo_factor_schedule = PiecewiseSchedule([(0, 1.), (int(outer_n_epoch / 16), 0.5)],
@@ -51,7 +68,8 @@ class SequentialES(ES):
                                 inner_max_n_epoch=self._inner_max_n_epoch,
                                 pool_rank=pool_rank,
                                 ppo_factor=ppo_factor_schedule.value(epoch),
-                                epoch=None)
+                                epoch=None,
+                                render=render)
 
         # Initialize theta.
         theta = self.init_theta(self._env)
@@ -62,6 +80,7 @@ class SequentialES(ES):
         adam = Adam(shape=(num_params,), beta1=0., stepsize=outer_learning_rate, dtype=np.float32)
 
         begin_time, best_test_return = time.time(), -np.inf
+
         for epoch in range(outer_n_epoch):
 
             # Anneal outer learning rate
@@ -91,7 +110,8 @@ class SequentialES(ES):
 
             results_processed_arr = np.asarray(
                 [returns, update_time, env_time, ep_length, n_ep, mean_ep_kl, final_rets],
-                dtype='float').ravel()
+                dtype='float')
+
 
             # Do outer loop update
             end_time = time.time()
@@ -99,48 +119,48 @@ class SequentialES(ES):
                 'All inner loops completed, returns gathered ({:.2f} sec).'.format(
                     time.time() - start_time))
 
-            results_processed_arr = results_processed_arr.reshape(1, 7, outer_n_samples_per_ep)
-            results_processed_arr = np.transpose(results_processed_arr, (0, 2, 1)).reshape(-1, 7)
             results_processed = [dict(returns=r[0],
                                       update_time=r[1],
                                       env_time=r[2],
                                       ep_length=r[3],
                                       n_ep=r[4],
                                       mean_ep_kl=r[5],
-                                      final_rets=r[6]) for r in results_processed_arr]
-            returns = np.asarray([r['returns'] for r in results_processed])
+                                      final_rets=r[6]) for r in results_processed_arr.transpose()]
 
-            # ES update
-            noise = noise[::NUM_EQUAL_NOISE_VECTORS]
-            returns = np.mean(returns.reshape(-1, NUM_EQUAL_NOISE_VECTORS), axis=1)
-            theta_grad = relative_ranks(returns).dot(noise) / outer_n_samples_per_ep \
-                         - outer_l2 * theta
+            signal_combinator = signal_combinator_selector(signal_combinator_id)
+            theta_grad = signal_combinator.calculate_gradient(theta,
+                                                   noise,
+                                                   outer_n_samples_per_ep,
+                                                   outer_l2,
+                                                   NUM_EQUAL_NOISE_VECTORS,
+                                                   results_processed)
+
             theta -= adam.step(theta_grad)
 
             # Perform `NUM_TEST_SAMPLES` evaluation runs on root 0.
-            #if epoch % self._outer_plot_freq == 0 or epoch == outer_n_epoch - 1:
-            #    start_test_time = time.time()
-            #    logger.log('Performing {} test runs in parallel on node 0 ...'.format(NUM_TEST_SAMPLES))
-            #    # Evaluation run with current theta
-            #    test_results = pool.amap(
-            #        objective,
-            #        [self._env] * NUM_TEST_SAMPLES,
-            #        theta[np.newaxis, :] + np.zeros((NUM_TEST_SAMPLES, num_params)),
-            #        range(NUM_TEST_SAMPLES)
-            #    ).get()
-            #    plotting.plot_results(epoch, test_results)
-            #    test_return = np.mean([utils.ret_to_obj(r['ep_return']) for r in test_results])
-            #    if test_return > best_test_return:
-            #        best_test_return = test_return
-            #        # Save theta as numpy array.
-            #        self.save_theta(theta)
-            #    self.save_theta(theta, str(epoch))
-            #    logger.log('Test runs performed ({:.2f} sec).'.format(time.time() - start_test_time))
+            if epoch % self._outer_plot_freq == 0 or epoch == outer_n_epoch - 1:
+                start_test_time = time.time()
+                logger.log('Performing {} test runs ...'.format(NUM_TEST_SAMPLES))
+
+                # Evaluation run with current theta
+                test_results = []
+                for test_number in range(NUM_TEST_SAMPLES):
+                    test_theta = theta[np.newaxis, :] + np.zeros((NUM_TEST_SAMPLES, num_params))
+                    test_results.append(objective(self._env, test_theta[test_number], test_number))
+
+                plotting.plot_results(epoch, test_results)
+                test_return = np.mean([utils.ret_to_obj(r['ep_return']) for r in test_results])
+                if test_return > best_test_return:
+                    best_test_return = test_return
+                    # Save theta as numpy array.
+                    self.save_theta(theta)
+                self.save_theta(theta, str(epoch))
+                logger.log('Test runs performed ({:.2f} sec).'.format(time.time() - start_test_time))
 
             logger.logkv('Epoch', epoch)
             utils.log_misc_stats('Obj', logger, returns)
             logger.logkv('PPOFactor', ppo_factor_schedule.value(epoch))
             logger.logkv('EpochTimeSpent(s)', end_time - start_time)
             logger.logkv('TotalTimeSpent(s)', end_time - begin_time)
-            #logger.logkv('BestTestObjMean', best_test_return)
+            logger.logkv('BestTestObjMean', best_test_return)
             logger.dumpkvs()
