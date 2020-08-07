@@ -3,12 +3,10 @@ import os
 import random
 
 import click
-import gym
 import numpy as np
-from mpi4py import MPI
 
 from epg.envs.CartPole import CartPole
-from epg.envs.MiniGrid import MiniGrid
+from epg.envs.validationEnvironment.MiniGrid import MiniGrid
 from epg.launching import launcher, logger
 from epg.envs.random_robots import RandomHopper, DirHopper, NormalHopper
 from epg.evolution import ES
