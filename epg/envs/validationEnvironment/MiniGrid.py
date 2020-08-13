@@ -1,31 +1,31 @@
 import gym
 import numpy as np
 from gym import Env
-import gym_minigrid
 from gym.spaces import Box
+from gym_minigrid.wrappers import ImgObsWrapper
 
-from epg.envs.envPicker.MiniGridEnvironmentPicker import MiniGridEnvironmentPicker
 from epg.envs.validationEnvironment.ValidationEnv import ValidationEnv
 
 
 class MiniGrid(Env, ValidationEnv):
 
-    def get_random_validation_env(self):
-        return self.environment_picker.get_validation_environment()
-
-    def __init__(self, seed=None, **_):
-        self.environment_picker = MiniGridEnvironmentPicker('MiniGrid-Empty-5x5-v0')
-        self.env = self.environment_picker.get_training_environment()
+    def __init__(self, env=None, seed=None, **_):
+        print(type(env))
+        self.env = ImgObsWrapper(gym.make('MiniGrid-DoorKey-5x5-v0')) if env is None else env
         self.observation_space = Box(low=0, high=5, shape=self.get_flat_shape(self.env))
         self.action_space = self.env.action_space
         self.reset_model = self.meta_reset
+        self.env.reset = self.reset
 
-    def meta_reset(self, seed): # Take env from the training set
+    def get_optimal_episode_length(self):
+        start_position = self.env.unwrapped.agent_start_pos
+        end_position = (self.env.unwrapped.width - 2, self.env.unwrapped.width - 2)
+        optimal_ep_length = abs(start_position[0] - end_position[0]) + abs(start_position[1] - end_position[1])
+        return optimal_ep_length
+
+    def meta_reset(self, seed): # TODO
         np.random.seed(seed)
-
-        env = self.environment_picker.get_training_environment()
-        env.seed(seed)
-        self.env = env
+        self.env.reset()
 
     def get_flat_shape(self, env):
         return (env.observation_space.shape[0] *

@@ -5,6 +5,7 @@ import gym
 from gym_minigrid.wrappers import ImgObsWrapper
 
 from epg.envs.envPicker.EnvironmentPicker import EnvironmentPicker
+from epg.envs.validationEnvironment.MiniGrid import MiniGrid
 
 
 class MiniGridEnvironmentPicker(EnvironmentPicker):
@@ -18,12 +19,12 @@ class MiniGridEnvironmentPicker(EnvironmentPicker):
     def get_training_environment(self):
         env = ImgObsWrapper(gym.make(self.env_id))
         env.agent_start_pos = self._get_random_training_position()
-        return env
+        return MiniGrid(env)
 
     def get_validation_environment(self):
         env = ImgObsWrapper(gym.make(self.env_id))
         env.agent_start_pos = self._get_random_validation_position()
-        return env
+        return MiniGrid(env)
 
     def _get_random_training_position(self):
         return random.choice(self.training_positions_list)
