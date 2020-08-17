@@ -15,7 +15,6 @@ class MiniGrid(Env, ValidationEnv):
         self.observation_space = Box(low=0, high=5, shape=self.get_flat_shape(self.env))
         self.action_space = self.env.action_space
         self.reset_model = self.meta_reset
-        self.env.reset = self.reset
 
     def get_optimal_episode_length(self):
         start_position = self.env.unwrapped.agent_start_pos
@@ -23,7 +22,7 @@ class MiniGrid(Env, ValidationEnv):
         optimal_ep_length = abs(start_position[0] - end_position[0]) + abs(start_position[1] - end_position[1])
         return optimal_ep_length
 
-    def meta_reset(self, seed): # TODO
+    def meta_reset(self, seed):
         np.random.seed(seed)
         self.env.reset()
 
