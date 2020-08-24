@@ -1,6 +1,8 @@
 import matplotlib
 
+from epg.envs.envPicker.MiniGridEnvironmentPicker import MiniGridEnvironmentPicker
 from epg.evolution import ES
+from epg.evolutionSignalsCombinator.RelativeRewardToTimeCombinator import RelativeRewardToTimeCombinator
 from epg.evolutionSignalsCombinator.AbsoluteTimeCombinator import AbsoluteTimeCombinator
 from epg.evolutionSignalsCombinator.DefaultCombinator import DefaultCombinator
 from epg.evolutionSignalsCombinator.RelativeTimeCombinator import RelativeTimeCombinator
@@ -27,12 +29,14 @@ NUM_TEST_SAMPLES = 7
 
 def signal_combinator_selector(signal_cobmbinator_id):
 
-    if 'Default' == signal_cobmbinator_id:
+    if 'DefaultCombinator' == signal_cobmbinator_id:
         signal_combinator = DefaultCombinator()
-    elif 'AbsoluteTime' == signal_cobmbinator_id:
+    elif 'AbsoluteTimeCombinator' == signal_cobmbinator_id:
         signal_combinator = AbsoluteTimeCombinator()
     elif 'RelativeTimeCombinator' == signal_cobmbinator_id:
         signal_combinator = RelativeTimeCombinator()
+    elif 'RelativeRewardToTimeCombinator' == signal_cobmbinator_id:
+        signal_combinator = RelativeRewardToTimeCombinator()
     else:
         raise Exception('Unknown signal combinator')
 
@@ -40,6 +44,11 @@ def signal_combinator_selector(signal_cobmbinator_id):
 
 
 class SequentialES(ES):
+
+    def __init__(self, environment_picker, env, env_id, **agent_args):
+        super().__init__(env, env_id, **agent_args)
+        self.environment_picker = environment_picker
+        self._env = self.environment_picker.get_training_environment()
 
     def train(self, outer_n_epoch, outer_l2, outer_std, outer_learning_rate, outer_n_samples_per_ep,
               n_cpu=None, fix_ppo=None, render=False, signal_combinator_id='Default', **_):
@@ -112,7 +121,6 @@ class SequentialES(ES):
                 [returns, update_time, env_time, ep_length, n_ep, mean_ep_kl, final_rets],
                 dtype='float')
 
-
             # Do outer loop update
             end_time = time.time()
             logger.log(
@@ -133,7 +141,9 @@ class SequentialES(ES):
                                                    outer_n_samples_per_ep,
                                                    outer_l2,
                                                    NUM_EQUAL_NOISE_VECTORS,
-                                                   results_processed)
+                                                   results_processed,
+                                                   self.environment_picker.get_validation_environment(),
+                                                   objective)
 
             theta -= adam.step(theta_grad)
 
@@ -164,3 +174,32 @@ class SequentialES(ES):
             logger.logkv('TotalTimeSpent(s)', end_time - begin_time)
             logger.logkv('BestTestObjMean', best_test_return)
             logger.dumpkvs()
+
+    def test(self, fix_ppo=None, load_theta_path=None, render=False, **_):
+
+        def objective(env, theta, pool_rank):
+            agent = self.create_agent(env, pool_rank)
+            loss_n_params = len(agent.get_loss().get_params_1d())
+            agent.get_loss().set_params_1d(theta[:loss_n_params])
+            if self._outer_evolve_policy_init:
+                agent.pi.set_params_1d(theta[loss_n_params:])
+            # Agent lifetime is inner_opt_freq * inner_max_n_epoch
+            return run_batch_rl(env, agent,
+                               inner_opt_freq=self._inner_opt_freq,
+                               inner_max_n_epoch=self._inner_max_n_epoch,
+                               inner_buffer_size=self._inner_buffer_size,
+                               pool_rank=0,
+                               ppo_factor=1. if fix_ppo else 0.,
+                               render=render, verbose=True)
+
+        if load_theta_path is not None:
+            try:
+
+                theta = self.load_theta(load_theta_path)
+                test_results = []
+                for i in range(NUM_TEST_SAMPLES):
+                    test_results.append(objective(self.environment_picker.get_test_environment(), theta, 0))
+                plotting.plot_test_results(test_results)
+            except Exception as e:
+                print(e)
+        logger.log('Test run finished.')
