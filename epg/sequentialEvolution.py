@@ -106,7 +106,8 @@ class SequentialES(ES):
 
             results = []
             for i in range(outer_n_samples_per_ep):
-                results.append(objective(self._env, theta_noise[i], i))
+                env = self.environment_picker.get_training_environment()
+                results.append(objective(env, theta_noise[i], i))
 
             # Extract relevant results
             returns = [utils.ret_to_obj(r['ep_final_rew']) for r in results]
