@@ -15,9 +15,6 @@ class RelativeTimeCombinator(EvolutionSignalsCombinator):
 
         returns = np.asarray([r['returns'] for r in results_processed])
 
-        print('RETURNS:', returns)
-        print('RELATIVE RANKS:', relative_ranks(returns))
-
         average_validation_ep_length = self.get_average_ep_length(theta, env, objective)
 
         noise = noise[::NUM_EQUAL_NOISE_VECTORS]
@@ -33,10 +30,6 @@ class RelativeTimeCombinator(EvolutionSignalsCombinator):
 
         print('BETA:', beta)
         print('X:', x)
-        print('Optimal ep length:', optimal_validation_ep_length)
-        print('Average validation ep length:', average_validation_ep_length)
-        average_training_ep_length = np.asarray([r['ep_length'] for r in results_processed]).mean()
-        print('Average training ep length:', average_training_ep_length)
 
         return theta_grad
 

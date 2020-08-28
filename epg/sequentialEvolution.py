@@ -105,8 +105,8 @@ class SequentialES(ES):
             start_time = time.time()
 
             results = []
+            env = self.environment_picker.get_training_environment()
             for i in range(outer_n_samples_per_ep):
-                env = self.environment_picker.get_training_environment()
                 results.append(objective(env, theta_noise[i], i))
 
             # Extract relevant results
@@ -157,7 +157,7 @@ class SequentialES(ES):
                 test_results = []
                 for test_number in range(NUM_TEST_SAMPLES):
                     test_theta = theta[np.newaxis, :] + np.zeros((NUM_TEST_SAMPLES, num_params))
-                    test_results.append(objective(self._env, test_theta[test_number], test_number))
+                    test_results.append(objective(env, test_theta[test_number], test_number))
 
                 plotting.plot_results(epoch, test_results)
                 test_return = np.mean([utils.ret_to_obj(r['ep_return']) for r in test_results])

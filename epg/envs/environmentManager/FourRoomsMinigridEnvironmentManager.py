@@ -10,13 +10,13 @@ from epg.envs.environmentManager.ValidationEnvironmentManager import ValidationE
 from epg.envs.validationEnvironment.MiniGrid import MiniGrid
 
 
-class EmptyMinigridEnvironmentManager(TrainingEnvironmentManager, ValidationEnvironmentManager):
+class FourRoomsMinigridEnvironmentManager(TrainingEnvironmentManager, ValidationEnvironmentManager):
 
     def __init__(self, training_percentage=0.7):
         assert training_percentage < 1
-        self.env_id = "MiniGrid-Empty-6x6-v0"
+        self.env_id = "MiniGrid-FourRooms-v0"
         self.training_positions_list, \
-        self.validation_positions_list = self._split_training_validation_positions(training_percentage)
+            self.validation_positions_list = self._split_training_validation_positions(training_percentage)
 
     def get_training_environment(self):
         env = ImgObsWrapper(gym.make(self.env_id))
@@ -59,4 +59,9 @@ class EmptyMinigridEnvironmentManager(TrainingEnvironmentManager, ValidationEnvi
                 all_positions.append((row, column))
 
         return all_positions
+
+
+
+
+
 

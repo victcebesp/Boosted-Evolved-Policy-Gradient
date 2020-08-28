@@ -10,11 +10,11 @@ from epg.envs.environmentManager.ValidationEnvironmentManager import ValidationE
 from epg.envs.validationEnvironment.MiniGrid import MiniGrid
 
 
-class EmptyMinigridEnvironmentManager(TrainingEnvironmentManager, ValidationEnvironmentManager):
+class DoorAndKeyMinigridEnvironmentManager(TrainingEnvironmentManager, ValidationEnvironmentManager):
 
     def __init__(self, training_percentage=0.7):
         assert training_percentage < 1
-        self.env_id = "MiniGrid-Empty-6x6-v0"
+        self.env_id = "MiniGrid-DoorKey-6x6-v0"
         self.training_positions_list, \
         self.validation_positions_list = self._split_training_validation_positions(training_percentage)
 
@@ -59,4 +59,3 @@ class EmptyMinigridEnvironmentManager(TrainingEnvironmentManager, ValidationEnvi
                 all_positions.append((row, column))
 
         return all_positions
-
