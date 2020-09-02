@@ -7,7 +7,7 @@ from gym_minigrid.wrappers import ImgObsWrapper
 
 from epg.envs.environmentManager.TrainingEnvironmentManager import TrainingEnvironmentManager
 from epg.envs.environmentManager.ValidationEnvironmentManager import ValidationEnvironmentManager
-from epg.envs.validationEnvironment.MiniGrid import MiniGrid
+from epg.envs.extendedEnvironment.MiniGrid import MiniGrid
 
 
 class DoorAndKeyMinigridEnvironmentManager(TrainingEnvironmentManager, ValidationEnvironmentManager):

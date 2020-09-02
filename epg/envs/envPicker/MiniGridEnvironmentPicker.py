@@ -1,10 +1,9 @@
 import random
 
 from epg.envs.envPicker.EnvironmentPicker import EnvironmentPicker
-from epg.envs.environmentManager.DoorAndKeyMinigridEnvironmentManager import DoorAndKeyMinigridEnvironmentManager
 from epg.envs.environmentManager.EmptyMinigridEnvironmentManager import EmptyMinigridEnvironmentManager
-from epg.envs.environmentManager.FourRoomsMinigridEnvironmentManager import FourRoomsMinigridEnvironmentManager
-from epg.envs.environmentManager.MultiRoomEnvironmentManager import MultiRoomEnvironmentManager
+from epg.envs.environmentManager.testEnvironmentManager.FourRoomsMinigridEnvironmentManager import \
+    FourRoomsMinigridEnvironmentManager
 
 
 class MiniGridEnvironmentPicker(EnvironmentPicker):
@@ -12,7 +11,7 @@ class MiniGridEnvironmentPicker(EnvironmentPicker):
     def __init__(self, training_percentage=0.7):
         assert training_percentage < 1
         self.environmentManagersList = self.get_environment_managers(training_percentage)
-        self.testEnvironmentManager = MultiRoomEnvironmentManager()
+        self.testEnvironmentManager = FourRoomsMinigridEnvironmentManager()
 
     def get_training_environment(self):
         return random.choice(self.environmentManagersList).get_training_environment()
@@ -24,6 +23,4 @@ class MiniGridEnvironmentPicker(EnvironmentPicker):
         return self.testEnvironmentManager.get_test_environment()
 
     def get_environment_managers(self, training_percentage):
-        return [EmptyMinigridEnvironmentManager(training_percentage),
-                FourRoomsMinigridEnvironmentManager(training_percentage),
-                DoorAndKeyMinigridEnvironmentManager(training_percentage)]
+        return [EmptyMinigridEnvironmentManager(training_percentage)]
