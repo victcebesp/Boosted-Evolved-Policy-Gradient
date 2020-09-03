@@ -14,17 +14,18 @@ class RelativeRewardToTimeCombinator(EvolutionSignalsCombinator):
 
         returns = np.asarray([r['returns'] for r in results_processed])
 
-        average_reward_to_ep_length = self.get_average_reward_to_ep_length(theta, env, objective)
-        x = average_reward_to_ep_length - self.last_reward_to_ep_length
-        print('x:', x)
-
-        beta = 1 - np.exp(-x * 4)
-        print('BETA:', beta)
+        current_average_reward_to_ep_length = self.get_average_reward_to_ep_length(theta, env, objective)
 
         noise = noise[::NUM_EQUAL_NOISE_VECTORS]
         returns = np.mean(returns.reshape(-1, NUM_EQUAL_NOISE_VECTORS), axis=1)
 
-        theta_grad = relative_ranks(returns).dot(noise) * beta / outer_n_samples_per_ep - outer_l2 * theta
+        x = current_average_reward_to_ep_length - self.last_reward_to_ep_length
+        beta = 1 - np.exp(-x)
+
+        theta_grad = beta * (relative_ranks(returns).dot(noise) / outer_n_samples_per_ep - outer_l2 * theta)
+
+        print('x:', x)
+        print('BETA:', beta)
 
         return theta_grad
 

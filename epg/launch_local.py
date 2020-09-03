@@ -6,7 +6,8 @@ import click
 import numpy as np
 
 from epg.envs.CartPole import CartPole
-from epg.envs.validationEnvironment.MiniGrid import MiniGrid
+from epg.envs.envPicker.MiniGridEnvironmentPicker import MiniGridEnvironmentPicker
+from epg.envs.extendedEnvironment.MiniGrid import MiniGrid
 from epg.launching import launcher, logger
 from epg.envs.random_robots import RandomHopper, DirHopper, NormalHopper
 from epg.evolution import ES
@@ -34,11 +35,18 @@ def env_selector(env_id, seed=0):
         env = NormalHopper(seed=seed)
     elif 'CartPole' == env_id:
         env = CartPole(seed=seed)
-    elif 'MiniGrid' == env_id:
+    elif 'MiniGrid' in env_id:
         env = MiniGrid(seed=seed)
     else:
         raise Exception('Unknown environment.')
     return env
+
+
+def environment_picker_selector(env_id):
+    if 'MiniGrid' in env_id:
+        return MiniGridEnvironmentPicker()
+    else:
+        raise Exception('Unknown environment picker')
 
 
 def setup_es(seed=0, env_id='DirHopper', log_path='/tmp/out', n_cpu=1, sequential=False, **agent_args):
@@ -47,9 +55,11 @@ def setup_es(seed=0, env_id='DirHopper', log_path='/tmp/out', n_cpu=1, sequentia
     assert agent_args is not None
     np.random.seed(seed)
     env = env_selector(env_id, seed)
+    environment_picker = environment_picker_selector(env_id)
+    env.env = environment_picker.get_training_environment()
     env.seed(seed)
     if sequential:
-        es = SequentialES(env, env_id, **agent_args)
+        es = SequentialES(environment_picker, env, env_id, **agent_args)
     else:
         es = ES(env, env_id, **agent_args)
     logger.log('Experiment configuration: {}'.format(str(locals())))
@@ -77,7 +87,7 @@ def main(test):
     # -----------------
     #env_id = 'DirHopper'
     #env_id = 'CartPole'
-    env_id = 'MiniGrid'
+    env_id = 'MiniGrid-Empty-6x6-v0'
     # Number of noise vector seeds for ES
     outer_n_samples_per_ep = 8
     # Perform policy SGD updates every `inner_opt_freq` steps
@@ -116,11 +126,11 @@ def main(test):
     # Local experiment log path
     launcher.LOCAL_LOG_PATH = os.path.expanduser("~/EPG_experiments")
     # Where to load theta from for `--test true` purposes
-    theta_load_path = '~/EPG_experiments/<path_to_theta.npy>/theta.npy'
+    theta_load_path = '/Users/macbookpro/EPG_experiments/9-1/10-49-minigrid-empty-6x6-v0-8-64-128-p/thetas/theta600.npy'
     # Whether to render or not the environment
     render = False
     # Signal combinator to create the loss used to evolve
-    signal_combinator_id = 'Default'
+    signal_combinator_id = 'RelativeTimeCombinator'
     # -----------------
 
     exp_tag = '{}-{}-{}{}{}{}'.format(
@@ -141,6 +151,9 @@ def main(test):
         'Running experiment {}/{} with {} noise vectors on {} machines with {}'
         ' MPI processes per machine, each using {} pool processes.'.format(
             date, exp_name, outer_n_samples_per_ep, mpi_machines, mpi_proc_per_machine, max_cpu))
+
+
+    print('THETA PATH:', theta_load_path)
 
     epg_args = dict(
         env_id=env_id,

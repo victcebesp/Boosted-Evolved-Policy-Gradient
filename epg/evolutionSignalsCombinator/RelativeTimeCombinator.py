@@ -22,7 +22,7 @@ class RelativeTimeCombinator(EvolutionSignalsCombinator):
 
         optimal_validation_ep_length = env.get_optimal_episode_length()
         current_average_ep_length = average_validation_ep_length / optimal_validation_ep_length
-        x = current_average_ep_length - self.last_average_ep_length
+        x = self.last_average_ep_length - current_average_ep_length
         self.last_average_ep_length = current_average_ep_length
         beta = 1 - np.exp(-x)
 

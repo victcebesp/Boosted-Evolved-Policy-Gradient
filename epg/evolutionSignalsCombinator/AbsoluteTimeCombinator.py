@@ -18,10 +18,8 @@ class AbsoluteTimeCombinator(EvolutionSignalsCombinator):
         print('RELATIVE RANKS:', relative_ranks(returns))
 
         optimal_validation_ep_length = env.get_optimal_episode_length()
-        #x = (optimal_ep_length - average_validation_ep_length) / average_validation_ep_length
-        x = average_validation_ep_length / optimal_validation_ep_length
-        #beta = 1 - np.exp(x)
-        beta = 1 - np.exp(-x)
+        x = -average_validation_ep_length / optimal_validation_ep_length
+        beta = 1 - np.exp(1+x)
 
         theta_grad = beta * (relative_ranks(returns).dot(noise) / outer_n_samples_per_ep - outer_l2 * theta)
 
