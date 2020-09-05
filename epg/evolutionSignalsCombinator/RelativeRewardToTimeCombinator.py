@@ -20,7 +20,7 @@ class RelativeRewardToTimeCombinator(EvolutionSignalsCombinator):
         returns = np.mean(returns.reshape(-1, NUM_EQUAL_NOISE_VECTORS), axis=1)
 
         x = current_average_reward_to_ep_length - self.last_reward_to_ep_length
-        beta = 1 - np.exp(-x)
+        beta = 1 - np.exp(-x) if x > 0 else 1 - np.exp(x)
 
         theta_grad = beta * (relative_ranks(returns).dot(noise) / outer_n_samples_per_ep - outer_l2 * theta)
 
