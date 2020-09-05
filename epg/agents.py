@@ -158,7 +158,7 @@ class GenericAgent(object):
             advs = gamma_expand(rews + self._ppo_gam * (1 - dones) * np.append(vp[1:], vp[-1]) - vp,
                                 self._ppo_gam * self._ppo_lam * (1 - dones))
             vt = advs + vp
-            at = (advs - advs.mean()) / advs.std()
+            at = (advs - advs.mean()) / (advs.std() + 0.00000001)
 
         epg_surr_loss = 0.
         pi_params_before = self._pi_f(_obs)
