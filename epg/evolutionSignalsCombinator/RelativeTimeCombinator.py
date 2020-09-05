@@ -24,7 +24,7 @@ class RelativeTimeCombinator(EvolutionSignalsCombinator):
         current_average_ep_length = average_validation_ep_length / optimal_validation_ep_length
         x = self.last_average_ep_length - current_average_ep_length
         self.last_average_ep_length = current_average_ep_length
-        beta = 1 - np.exp(-x) if x > 0 else 1 - np.exp(x)
+        beta = 1 - np.exp(-x) if x >= 0 else 1 - np.exp(x)
 
         theta_grad = beta * (relative_ranks(returns).dot(noise) / outer_n_samples_per_ep - outer_l2 * theta)
 
