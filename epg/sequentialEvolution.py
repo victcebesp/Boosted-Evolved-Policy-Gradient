@@ -51,7 +51,7 @@ class SequentialES(ES):
         self._env = self.environment_picker.get_training_environment()
 
     def train(self, outer_n_epoch, outer_l2, outer_std, outer_learning_rate, outer_n_samples_per_ep,
-              n_cpu=None, fix_ppo=None, render=False, signal_combinator_id='Default', **_):
+              n_cpu=None, fix_ppo=None, render=False, signal_combinator_id='DefaultCombinator', **_):
 
         if fix_ppo:
             ppo_factor_schedule = PiecewiseSchedule([(0, 1.), (int(outer_n_epoch / 16), 0.5)],
