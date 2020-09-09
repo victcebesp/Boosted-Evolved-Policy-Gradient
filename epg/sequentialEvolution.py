@@ -191,7 +191,7 @@ class SequentialES(ES):
                                inner_buffer_size=self._inner_buffer_size,
                                pool_rank=0,
                                ppo_factor=1. if fix_ppo else 0.,
-                               render=render, verbose=True)
+                               render=render, verbose=False)
 
         if load_theta_path is not None:
             try:
