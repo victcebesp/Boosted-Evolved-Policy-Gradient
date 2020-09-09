@@ -26,7 +26,7 @@ gym.logger.set_level(41)
 NUM_EQUAL_NOISE_VECTORS = 1
 NUM_TEST_SAMPLES = 7
 
-
+# Returns an EvolutionSignalsCombinator depending on the initial configuration
 def signal_combinator_selector(signal_cobmbinator_id):
 
     if 'DefaultCombinator' == signal_cobmbinator_id:
@@ -42,6 +42,10 @@ def signal_combinator_selector(signal_cobmbinator_id):
 
     return signal_combinator
 
+
+"""
+Sequential implementation of the ES implemented in the original paper by Houthooft et al. (2018)
+"""
 
 class SequentialES(ES):
 
@@ -136,7 +140,10 @@ class SequentialES(ES):
                                       mean_ep_kl=r[5],
                                       final_rets=r[6]) for r in results_processed_arr.transpose()]
 
+            # Get EvolutionSignalsCombinator depending on the initial configuration
             signal_combinator = signal_combinator_selector(signal_combinator_id)
+
+            # Get the new gradient using the measure of transferred knowledge
             theta_grad = signal_combinator.calculate_gradient(theta,
                                                    noise,
                                                    outer_n_samples_per_ep,

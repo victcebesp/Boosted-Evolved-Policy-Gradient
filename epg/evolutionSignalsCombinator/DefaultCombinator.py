@@ -4,10 +4,11 @@ import numpy as np
 from epg.utils import relative_ranks
 
 
+#  Calculates and returns the gradient as explained in (Houthooft et al., 2018)
 class DefaultCombinator(EvolutionSignalsCombinator):
 
-    def calculate_gradient(self, theta, noise, outer_n_samples_per_ep, outer_l2, NUM_EQUAL_NOISE_VECTORS, results_processed, env, objective):
-
+    def calculate_gradient(self, theta, noise, outer_n_samples_per_ep, outer_l2, NUM_EQUAL_NOISE_VECTORS,
+                           results_processed, env, objective):
         returns = np.asarray([r['returns'] for r in results_processed])
 
         noise = noise[::NUM_EQUAL_NOISE_VECTORS]
