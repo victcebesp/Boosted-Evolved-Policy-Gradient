@@ -39,6 +39,8 @@ class RelativeRewardToTimeCombinator(EvolutionSignalsCombinator):
         theta_grad = beta * (relative_ranks(returns).dot(noise) / outer_n_samples_per_ep - outer_l2 * theta)
 
         # Update last reward w.r.t. the number of steps
+        self.last_reward_to_ep_length = current_average_reward_to_ep_length
+
         print('x:', x)
         print('BETA:', beta)
 
